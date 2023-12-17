@@ -32,10 +32,11 @@ func main() {
 	}
 
 	records := createRecords(inLines)
-	sum := idSumOfPossibleGames(records)
+	idSum := idSumOfPossibleGames(records)
+	powerSum := sumOfPowers(records)
 
-	//fmt.Println(records)
-	fmt.Println(sum)
+	fmt.Println(idSum)
+	fmt.Println(powerSum)
 }
 
 func readLines(filename string) ([]string, error) {
@@ -117,4 +118,32 @@ func validRecord(rec Record, blockMap map[string]int) bool {
 		}
 	}
 	return true
+}
+
+func sumOfPowers(records []Record) int {
+	sum := 0
+
+	for _, record := range records {
+		sum += powerOfRecord(record)
+	}
+
+	return sum
+}
+
+func powerOfRecord(record Record) int {
+	mini := map[string]int{
+		"red":   0,
+		"green": 0,
+		"blue":  0,
+	}
+
+	for _, block := range record.blocks {
+		for key, val := range block {
+			if val > mini[key] {
+				mini[key] = val
+			}
+		}
+	}
+
+	return mini["red"] * mini["green"] * mini["blue"]
 }
