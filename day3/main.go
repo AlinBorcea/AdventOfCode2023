@@ -4,101 +4,95 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strings"
 )
 
 const filename = "puzzle.txt"
 
-type NumCoord struct {
-	num, x, y int
-}
-
 func main() {
 	lines := readFile(filename)
-	sum := partNumberSum(lines)
+	lineLength := findLineLength(filename)
+	sum := partNumberSum(lines, lineLength)
 
 	fmt.Println(sum)
 }
 
-func readFile(filename string) (lines []string) {
+func readFile(filename string) string {
+	buf, _ := os.ReadFile(filename)
+	content := string(buf)
+	content = strings.ReplaceAll(content, "\r\n", "")
+	return content
+}
+
+func findLineLength(filename string) int {
 	file, _ := os.Open(filename)
+	defer file.Close()
 	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		lines = append(lines, scanner.Text())
-	}
-	return
+	scanner.Scan()
+	return len(scanner.Text())
 }
 
-func partNumberSum(lines []string) (sum int) {
+func partNumberSum(lines string, lineLength int) int {
+	var sum, n, x, y int
+
 	for i := 0; i < len(lines); i++ {
-		for j := 0; j < len(lines[i]); j++ {
-			if lines[i][j] >= '0' && lines[i][j] <= '9' {
-				numCoord := getNumCoord(lines[i], j)
-				if adjacentToSymbol(lines, i, numCoord) {
-					sum += numCoord.num
-					j = numCoord.y
-				}
+		if lines[i] >= '0' && lines[i] <= '9' {
+			n, x, y = findNumbersCoordinates(lines, lineLength, i)
+			if partNumber(lines, lineLength, x, y) {
+				sum += n
 			}
+			i = y
 		}
 	}
-	return
+
+	return sum
 }
 
-func getNumCoord(str string, start int) NumCoord {
+func findNumbersCoordinates(lines string, lineLength, index int) (int, int, int) {
 	n := 0
-	i := start
-	for ; i < len(str) && str[i] >= '0' && str[i] <= '9'; i++ {
-		n = n*10 + int(str[i]-'0')
+	i := index
+	for ; i%lineLength < lineLength && lines[i] >= '0' && lines[i] <= '9'; i++ {
+		n = n*10 + int(lines[i]-'0')
 	}
 
-	return NumCoord{num: n, x: start, y: i - 1}
+	return n, index, i - 1
 }
 
-func adjacentToSymbol(lines []string, i int, numCoord NumCoord) bool {
-	//horizontal
-	if numCoord.x > 0 && charIsSymbol(lines[i][numCoord.x-1]) {
+func partNumber(lines string, lineLength, x, y int) bool {
+	var x1, y1 int
+
+	if x%lineLength == 0 {
+		x1 = x
+	} else {
+		x1 = x - 1
+	}
+	if y%lineLength == lineLength-1 {
+		y1 = y
+	} else {
+		y1 = y + 1
+	}
+
+	if subStringHasSymbol(lines[x1 : y1+1]) {
 		return true
-
 	}
-	if numCoord.y < len(lines[i])-1 && charIsSymbol(lines[i][numCoord.y+1]) {
+
+	if x1-lineLength >= 0 && subStringHasSymbol(lines[x1-lineLength:y1-lineLength+1]) {
 		return true
-
-	}
-	if i > 0 { //vertical
-		j := numCoord.x - 1
-		z := numCoord.y + 1
-		if numCoord.x == 0 {
-			j = 0
-		}
-
-		if numCoord.y == len(lines[i-1])-1 {
-			z = numCoord.y
-		}
-
-		for ; j <= z; j++ {
-			if charIsSymbol(lines[i-1][j]) {
-				return true
-			}
-		}
-
-	}
-	if i < len(lines)-1 {
-		j := numCoord.x - 1
-		z := numCoord.y + 1
-		if numCoord.x == 0 {
-			j = 0
-		}
-
-		if numCoord.y == len(lines[i+1])-1 {
-			z = numCoord.y
-		}
-
-		for ; j <= z; j++ {
-			if charIsSymbol(lines[i+1][j]) {
-				return true
-			}
-		}
 	}
 
+	if x1+lineLength < len(lines) && subStringHasSymbol(lines[x1+lineLength:y1+lineLength+1]) {
+		return true
+	}
+
+	return false
+}
+
+func subStringHasSymbol(str string) bool {
+	for _, ch := range str {
+		if charIsSymbol(byte(ch)) {
+			return true
+		}
+	}
 	return false
 }
 
